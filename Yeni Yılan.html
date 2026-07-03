@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Yılan Oyunu</title>
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background-color: #2c3e50;
+            color: white;
+            font-family: sans-serif;
+            margin: 0;
+            padding: 20px;
+        }
+        canvas {
+            background-color: #34495e;
+            border: 2px solid #ecf0f1;
+            box-shadow: 0 0 10px rgba(0,0,0,0.5);
+            max-width: 100%;
+        }
+        .controls {
+            margin-top: 20px;
+            display: grid;
+            grid-template-columns: 60px 60px 60px;
+            grid-template-rows: 60px 60px;
+            gap: 10px;
+        }
+        .btn {
+            background-color: #3498db;
+            border: none;
+            border-radius: 10px;
+            color: white;
+            font-size: 24px;
+            cursor: pointer;
+        }
+        .btn:active {
+            background-color: #2980b9;
+        }
+        #up { grid-column: 2; grid-row: 1; }
+        #left { grid-column: 1; grid-row: 2; }
+        #down { grid-column: 2; grid-row: 2; }
+        #right { grid-column: 3; grid-row: 2; }
+    </style>
+</head>
+<body>
+
+    <h1>Yılan Oyunu</h1>
+    <p>Skor: <span id="score">0</span></p>
+    
+    <!-- Oyun Alanı -->
+    <canvas id="gameCanvas" width="300" height="300"></canvas>
+
+    <!-- Tablet ve Telefonlar için Dokunmatik Kontroller -->
+    <div class="controls">
+        <button class="btn" id="up" onclick="changeDirection('UP')">↑</button>
+        <button class="btn" id="left" onclick="changeDirection('LEFT')">←</button>
+        <button class="btn" id="down" onclick="changeDirection('DOWN')">↓</button>
+        <button class="btn" id="right" onclick="changeDirection('RIGHT')">→</button>
+    </div>
+
+    <script>
+        const canvas = document.getElementById("gameCanvas");
+        const ctx = canvas.getContext("2d");
+        const box = 15;
+        let score = 0;
+
+        // Yılanın başlangıç pozisyonu
+        let snake = [];
+        snake[0] = { x: 9 * box, y: 10 * box };
+
+        // Yemin rastgele konumu
+        let food = {
+            x: Math.floor(Math.random() * (canvas.width / box)) * box,
+            y: Math.floor(Math.random() * (canvas.height / box)) * box
+        };
+
+        let d = null; // Başlangıçta yön boş (null)
+
+        // Klavye kontrollerini dinleme
+        document.addEventListener("keydown", direction);
+
+        function direction(event) {
+            if (event.keyCode == 37 && d != "RIGHT") d = "LEFT";
+            else if (event.keyCode == 38 && d != "DOWN") d = "UP";
+            else if (event.keyCode == 39 && d != "LEFT") d = "RIGHT";
+            else if (event.keyCode == 40 && d != "UP") d = "DOWN";
+        }
+
+        // Ekrandaki tuşlar için yön değiştirme fonksiyonu
+        function changeDirection(newDirection) {
+            if (newDirection == 'LEFT' && d != "RIGHT") d = "LEFT";
+            else if (newDirection == 'UP' && d != "DOWN") d = "UP";
+            else if (newDirection == 'RIGHT' && d != "LEFT") d = "RIGHT";
+            else if (newDirection == 'DOWN' && d != "UP") d = "DOWN";
+        }
+
+        // Çarpışma kontrolü
+        function collision(head, array) {
+            for (let i = 0; i < array.length; i++) {
+                if (head.x == array[i].x && head.y == array[i].y) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        // Oyunu ekrana çizme
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Önce yılanı çiz
+            for (let i = 0; i < snake.length; i++) {
+                ctx.fillStyle = (i == 0) ? "#2ecc71" : "#27ae60"; 
+                ctx.fillRect(snake[i].x, snake[i].y, box, box);
+                ctx.strokeStyle = "#34495e";
+                ctx.strokeRect(snake[i].x, snake[i].y, box, box);
+            }
+
+            // Yemi çiz
+            ctx.fillStyle = "#e74c3c";
+            ctx.fillRect(food.x, food.y, box, box);
+
+            // Oyuncu bir yöne basmadıysa hareket hesaplamasını atla
+            if (d === null) return;
+
+            let snakeX = snake[0].x;
+            let snakeY = snake[0].y;
+
+            if (d == "LEFT") snakeX -= box;
+            if (d == "UP") snakeY -= box;
+            if (d == "RIGHT") snakeX += box;
+            if (d == "DOWN") snakeY += box;
+
+            let newHead = { x: snakeX, y: snakeY };
+
+            // Duvara veya kendine çarparsa oyun biter
+            if (snakeX < 0 || snakeX >= canvas.width || snakeY < 0 || snakeY >= canvas.height || collision(newHead, snake)) {
+                clearInterval(game);
+                alert("Oyun Bitti! Skorun: " + score);
+                location.reload(); 
+                return;
+            }
+
+            // Yılan yemi yerse
+            if (snakeX == food.x && snakeY == food.y) {
+                score++;
+                document.getElementById("score").innerText = score;
+                food = {
+                    x: Math.floor(Math.random() * (canvas.width / box)) * box,
+                    y: Math.floor(Math.random() * (canvas.height / box)) * box
+                };
+            } else {
+                snake.pop(); 
+            }
+
+            snake.unshift(newHead);
+        }
+
+        // Oyunun hızı (120 milisaniyede bir güncellenir)
+        let game = setInterval(draw, 120);
+    </script>
+</body>
+</html>
