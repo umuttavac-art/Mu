@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gelişmiş Modern Yılan Oyunu</title>
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background: linear-gradient(135deg, #1f4037, #99f2c8);
+            color: white;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 15px;
+            min-height: 100vh;
+            box-sizing: border-box;
+            user-select: none;
+        }
+        h1 {
+            margin: 5px 0;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.4);
+            font-size: 2.2rem;
+        }
+        
+        /* Menü Tasarımı */
+        #menuContainer {
+            background: rgba(0, 0, 0, 0.75);
+            padding: 30px;
+            border-radius: 20px;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            backdrop-filter: blur(10px);
+            border: 2px solid rgba(255,255,255,0.1);
+            max-width: 90%;
+            width: 350px;
+            margin-top: 50px;
+        }
+        #menuContainer h2 {
+            margin-top: 0;
+            color: #99f2c8;
+        }
+        .menu-btn {
+            display: block;
+            width: 100%;
+            padding: 12px;
+            margin: 12px 0;
+            background: linear-gradient(135deg, #38ef7d, #11998e);
+            border: none;
+            border-radius: 10px;
+            color: white;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+        .menu-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(56, 239, 125, 0.4);
+        }
+        
+        /* Oyun Alanı Tasarımı */
+        #gameContainer {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+        }
+        .score-board {
+            font-size: 20px;
+            margin-bottom: 15px;
+            background: rgba(0, 0, 0, 0.4);
+            padding: 8px 25px;
+            border-radius: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        canvas {
+            background-color: #1e1e1e;
+            border: 4px solid #fff;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            max-width: 100%;
+        }
+        
+        /* Dairesel Modern Kontrol Paneli */
+        .joystick-controls {
+            margin-top: 20px;
+            position: relative;
+            width: 160px;
+            height: 160px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 50%;
+            border: 3px solid rgba(255,255,255,0.4);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+        }
+        .j-btn {
+            position: absolute;
+            background: rgba(255, 255, 255, 0.15);
+            border: 1px solid rgba(255,255,255,0.5);
+            color: white;
+            font-size: 24px;
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.1s ease;
+        }
+        .j-btn:active {
+            background: #38ef7d;
+            color: #1f4037;
+            transform: scale(0.9);
+            box-shadow: 0 0 15px #38ef7d;
+        }
+        #j-up { top: 5px; left: 56px; }
+        #j-left { top: 56px; left: 5px; }
+        #j-right { top: 56px; right: 5px; }
+        #j-down { bottom: 5px; left: 56px; }
+        .center-dot {
+            position: absolute;
+            top: 65px;
+            left: 65px;
+            width: 30px;
+            height: 30px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 50%;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Yılan Oyunu</h1>
+
+    <!-- GİRİŞ MENÜSÜ -->
+    <div id="menuContainer">
+        <h2>Harita Boyutu Seçin</h2>
+        <button class="menu-btn" onclick="startGame('KUCUK')">Küçük (300 x 300)</button>
+        <button class="menu-btn" onclick="startGame('ORTA')">Orta (450 x 450)</button>
+        <button class="menu-btn" onclick="startGame('BUYUK')">Büyük (600 x 600)</button>
+    </div>
+
+    <!-- OYUN ALANI -->
+    <div id="gameContainer">
+        <div class="score-board">Skor: <span id="score">0</span></div>
+        <canvas id="gameCanvas"></canvas>
+
+        <!-- Yenilenmiş Dairesel Kontrol Paneli -->
+        <div class="joystick-controls">
+            <div class="center-dot"></div>
+            <button class="j-btn" id="j-up" onclick="changeDirection('UP')">↑</button>
+            <button class="j-btn" id="j-left" onclick="changeDirection('LEFT')">←</button>
+            <button class="j-btn" id="j-right" onclick="changeDirection('RIGHT')">→</button>
+            <button class="j-btn" id="j-down" onclick="changeDirection('DOWN')">↓</button>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById("gameCanvas");
+        const ctx = canvas.getContext("2d");
+
+        // Oyun ayarları
+        const snakeRadius = 10; 
+        const speed = 3.8; 
+        let score = 0;
+        let isGameOver = false;
+        let gameStarted = false;
+
+        let snake = [];
+        let food = { x: 0, y: 0, type: 'elma' };
+        let currentDir = null;
+        let nextDir = null;
+
+        // Meyve listesi ve özellikleri (Renkleri ve ekstra detayları)
+        const fruits = [
+            { name: 'elma', color: '#e74c3c', leaf: '#2ecc71' },
+            { name: 'muz', color: '#f1c40f', leaf: '#d35400' },
+            { name: 'yabanmersini', color: '#2980b9', leaf: '#27ae60' },
+            { name: 'uzum', color: '#8e44ad', leaf: '#27ae60' }
+        ];
+
+        // Menüden boyut seçilince tetiklenen fonksiyon
+        function startGame(size) {
+            if (size === 'KUCUK') {
+                canvas.width = 300;
+                canvas.height = 300;
+            } else if (size === 'ORTA') {
+                canvas.width = 450;
+                canvas.height = 450;
+            } else if (size === 'BUYUK') {
+                canvas.width = 600;
+                canvas.height = 600;
+            }
+
+            // Menüyü gizle, oyunu göster
+            document.getElementById("menuContainer").style.display = "none";
+            document.getElementById("gameContainer").style.display = "flex";
+            
+            // Yılanı harita merkezine göre konumlandır
+            snake = [];
+            let startX = canvas.width / 2;
+            let startY = canvas.height / 2;
+            for (let i = 0; i < 5; i++) {
+                snake.push({ x: startX - i * (snakeRadius * 1.5), y: startY });
+            }
+
+            spawnFood();
+            gameStarted = true;
+            requestAnimationFrame(gameLoop);
+        }
+
+        // Kontroller
+        document.addEventListener("keydown", (e) => {
+            if (!gameStarted) return;
+            if (e.keyCode == 37 && currentDir != "RIGHT") nextDir = "LEFT";
+            else if (e.keyCode == 38 && currentDir != "DOWN") nextDir = "UP";
+            else if (e.keyCode == 39 && currentDir != "LEFT") nextDir = "RIGHT";
+            else if (e.keyCode == 40 && currentDir != "UP") nextDir = "DOWN";
+        });
+
+        function changeDirection(dir) {
+            if (!gameStarted) return;
+            if (dir == 'LEFT' && currentDir != "RIGHT") nextDir = "LEFT";
+            else if (dir == 'UP' && currentDir != "DOWN") nextDir = "UP";
+            else if (dir == 'RIGHT' && currentDir != "LEFT") nextDir = "RIGHT";
+            else if (dir == 'DOWN' && currentDir != "UP") nextDir = "DOWN";
+        }
+
+        // Yeni Rastgele Meyve Üretme
+        function spawnFood() {
+            food.x = Math.random() * (canvas.width - 40) + 20;
+            food.y = Math.random() * (canvas.height - 40) + 20;
+            // Rastgele bir meyve türü seç
+            const randomFruit = fruits[Math.floor(Math.random() * fruits.length)];
+            food.type = randomFruit;
+        }
+
+        function getDistance(x1, y1, x2, y2) {
+            return Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
+        }
+
+        // Ana Oyun Döngüsü
+        function gameLoop() {
+            if (isGameOver || !gameStarted) return;
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Arka plan ızgara efekti
+            ctx.strokeStyle = "rgba(255,255,255,0.03)";
+            ctx.lineWidth = 1;
+            for(let i=0; i<canvas.width; i+=25) {
+                ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, canvas.height); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(canvas.width, i); ctx.stroke();
+            }
+
+            // Dinamik Meyve Çizimi
+            ctx.fillStyle = food.type.color;
+            ctx.beginPath();
+            if(food.type.name === 'muz') {
+                // Muz için biraz daha oval/hilal çizim yapalım
+                ctx.ellipse(food.x, food.y, 11, 6, Math.PI / 4, 0, Math.PI * 2);
+            } else {
+                // Standart dairesel meyveler
+                ctx.arc(food.x, food.y, 9, 0, Math.PI * 2);
+            }
+            ctx.fill();
+
+            // Meyve Yaprağı/Sapı Çizimi
+            ctx.fillStyle = food.type.leaf;
+            ctx.beginPath();
+            ctx.arc(food.x + 3, food.y - 7, 3, 0, Math.PI * 2);
+            ctx.fill();
+
+            if (nextDir !== null) currentDir = nextDir;
+
+            // Hareket mekaniği
+            if (currentDir !== null) {
+                let head = { x: snake[0].x, y: snake[0].y };
+
+                if (currentDir == "LEFT") head.x -= speed;
+                if (currentDir == "RIGHT") head.x += speed;
+                if (currentDir == "UP") head.y -= speed;
+                if (currentDir == "DOWN") head.y += speed;
+
+                snake[0].x = head.x;
+                snake[0].y = head.y;
+
+                // Gövde takibi
+                for (let i = 1; i < snake.length; i++) {
+                    let targetX = snake[i-1].x;
+                    let targetY = snake[i-1].y;
+                    let dist = getDistance(snake[i].x, snake[i].y, targetX, targetY);
+                    
+                    let idealDist = snakeRadius * 1.2; 
+                    if (dist > idealDist) {
+                        let angle = Math.atan2(targetY - snake[i].y, targetX - snake[i].x);
+                        snake[i].x = targetX - Math.cos(angle) * idealDist;
+                        snake[i].y = targetY - Math.sin(angle) * idealDist;
+                    }
+                }
+
+                // Seçilen harita boyutunun sınırlarına göre duvar çarpışması
+                if (head.x < 0 || head.x > canvas.width || head.y < 0 || head.y > canvas.height) {
+                    gameOver();
+                    return;
+                }
+
+                // Kendine çarpma kontrolü
+                for (let i = 20; i < snake.length; i++) {
+                    if (getDistance(head.x, head.y, snake[i].x, snake[i].y) < snakeRadius * 0.8) {
+                        gameOver();
+                        return;
+                    }
+                }
+
+                // Meyve yeme kontrolü
+                if (getDistance(head.x, head.y, food.x, food.y) < snakeRadius + 10) {
+                    score++;
+                    document.getElementById("score").innerText = score;
+                    spawnFood();
+                    
+                    let lastPart = snake[snake.length - 1];
+                    snake.push({ x: lastPart.x, y: lastPart.y });
+                    snake.push({ x: lastPart.x, y: lastPart.y });
+                    snake.push({ x: lastPart.x, y: lastPart.y });
+                }
+            }
+
+            // Yılanı Çiz
+            for (let i = snake.length - 1; i >= 0; i--) {
+                ctx.beginPath();
+                if (i == 0) {
+                    // Kafa
+                    ctx.fillStyle = "#2ecc71";
+                    ctx.arc(snake[i].x, snake[i].y, snakeRadius + 2, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    // Gözler
+                    ctx.fillStyle = "white";
+                    let eyeX1 = snake[i].x, eyeY1 = snake[i].y;
+                    let eyeX2 = snake[i].x, eyeY2 = snake[i].y;
+                    
+                    if(currentDir == "LEFT" || currentDir === null) {
+                        eyeX1 -= 4; eyeY1 -= 4; eyeX2 -= 4; eyeY2 += 4;
+                    } else if(currentDir == "RIGHT") {
+                        eyeX1 += 4; eyeY1 -= 4; eyeX2 += 4; eyeY2 += 4;
+                    } else if(currentDir == "UP") {
+                        eyeX1 -= 4; eyeY1 -= 4; eyeX2 += 4; eyeY2 -= 4;
+                    } else if(currentDir == "DOWN") {
+                        eyeX1 -= 4; eyeY1 += 4; eyeX2 += 4; eyeY2 += 4;
+                    }
+                    
+                    ctx.beginPath(); ctx.arc(eyeX1, eyeY1, 3, 0, Math.PI*2); ctx.fill();
+                    ctx.beginPath(); ctx.arc(eyeX2, eyeY2, 3, 0, Math.PI*2); ctx.fill();
+                    ctx.fillStyle = "black";
+                    ctx.beginPath(); ctx.arc(eyeX1, eyeY1, 1.5, 0, Math.PI*2); ctx.fill();
+                    ctx.beginPath(); ctx.arc(eyeX2, eyeY2, 1.5, 0, Math.PI*2); ctx.fill();
+
+                } else {
+                    // Gövde
+                    ctx.fillStyle = i % 2 == 0 ? "#27ae60" : "#219a52";
+                    ctx.arc(snake[i].x, snake[i].y, snakeRadius, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            }
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        function gameOver() {
+            isGameOver = true;
+            alert("Oyun Bitti! Skorun: " + score);
+            location.reload();
+        }
+    </script>
+</body>
+</html>
