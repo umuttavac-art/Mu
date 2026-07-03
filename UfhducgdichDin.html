@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Modern Yılan Oyunu</title>
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background: linear-gradient(135deg, #1a2a6c, #b21f1f, #fdbb2d);
+            color: white;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+            box-sizing: border-box;
+        }
+        h1 {
+            margin-bottom: 5px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+        }
+        .score-board {
+            font-size: 20px;
+            margin-bottom: 15px;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 8px 20px;
+            border-radius: 20px;
+            backdrop-filter: blur(5px);
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        canvas {
+            background-color: #222;
+            border: 4px solid #fff;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            max-width: 100%;
+        }
+        .controls {
+            margin-top: 20px;
+            display: grid;
+            grid-template-columns: 65px 65px 65px;
+            grid-template-rows: 65px 65px;
+            gap: 12px;
+        }
+        .btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: 2px solid white;
+            border-radius: 15px;
+            color: white;
+            font-size: 28px;
+            cursor: pointer;
+            backdrop-filter: blur(5px);
+            transition: all 0.1s ease;
+        }
+        .btn:active {
+            background: rgba(255, 255, 255, 0.5);
+            transform: scale(0.95);
+        }
+        #up { grid-column: 2; grid-row: 1; }
+        #left { grid-column: 1; grid-row: 2; }
+        #down { grid-column: 2; grid-row: 2; }
+        #right { grid-column: 3; grid-row: 2; }
+    </style>
+</head>
+<body>
+
+    <h1>Yılan Oyunu</h1>
+    <div class="score-board">Skor: <span id="score">0</span></div>
+    
+    <canvas id="gameCanvas" width="400" height="400"></canvas>
+
+    <div class="controls">
+        <button class="btn" id="up" onclick="changeDirection('UP')">↑</button>
+        <button class="btn" id="left" onclick="changeDirection('LEFT')">←</button>
+        <button class="btn" id="down" onclick="changeDirection('DOWN')">↓</button>
+        <button class="btn" id="right" onclick="changeDirection('RIGHT')">→</button>
+    </div>
+
+    <script>
+        const canvas = document.getElementById("gameCanvas");
+        const ctx = canvas.getContext("2d");
+
+        // Oyun ayarları
+        const snakeRadius = 10; 
+        const speed = 3.5; 
+        let score = 0;
+        let isGameOver = false;
+
+        // Başlangıç konumları
+        let snake = [];
+        for (let i = 0; i < 5; i++) {
+            snake.push({ x: 200 - i * (snakeRadius * 1.5), y: 200 });
+        }
+
+        let food = { x: 0, y: 0 };
+        spawnFood();
+
+        let currentDir = null;
+        let nextDir = null;
+
+        // Kontroller
+        document.addEventListener("keydown", (e) => {
+            if (e.keyCode == 37 && currentDir != "RIGHT") nextDir = "LEFT";
+            else if (e.keyCode == 38 && currentDir != "DOWN") nextDir = "UP";
+            else if (e.keyCode == 39 && currentDir != "LEFT") nextDir = "RIGHT";
+            else if (e.keyCode == 40 && currentDir != "UP") nextDir = "DOWN";
+        });
+
+        function changeDirection(dir) {
+            if (dir == 'LEFT' && currentDir != "RIGHT") nextDir = "LEFT";
+            else if (dir == 'UP' && currentDir != "DOWN") nextDir = "UP";
+            else if (dir == 'RIGHT' && currentDir != "LEFT") nextDir = "RIGHT";
+            else if (dir == 'DOWN' && currentDir != "UP") nextDir = "DOWN";
+        }
+
+        function spawnFood() {
+            food.x = Math.random() * (canvas.width - 40) + 20;
+            food.y = Math.random() * (canvas.height - 40) + 20;
+        }
+
+        function getDistance(x1, y1, x2, y2) {
+            return Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
+        }
+
+        // Ana Oyun Döngüsü
+        function gameLoop() {
+            if (isGameOver) return;
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Arka plan ızgara efekti
+            ctx.strokeStyle = "rgba(255,255,255,0.03)";
+            ctx.lineWidth = 1;
+            for(let i=0; i<canvas.width; i+=20) {
+                ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, canvas.height); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(canvas.width, i); ctx.stroke();
+            }
+
+            // Yemi Çiz (Elma)
+            ctx.fillStyle = "#e74c3c";
+            ctx.beginPath();
+            ctx.arc(food.x, food.y, 9, 0, Math.PI * 2);
+            ctx.fill();
+            // Yaprak
+            ctx.fillStyle = "#2ecc71";
+            ctx.beginPath();
+            ctx.arc(food.x + 4, food.y - 7, 3, 0, Math.PI * 2);
+            ctx.fill();
+
+            if (nextDir !== null) currentDir = nextDir;
+
+            // Hareket mekaniği
+            if (currentDir !== null) {
+                let head = { x: snake[0].x, y: snake[0].y };
+
+                if (currentDir == "LEFT") head.x -= speed;
+                if (currentDir == "RIGHT") head.x += speed;
+                if (currentDir == "UP") head.y -= speed;
+                if (currentDir == "DOWN") head.y += speed;
+
+                snake[0].x = head.x;
+                snake[0].y = head.y;
+
+                // Gövde takibi
+                for (let i = 1; i < snake.length; i++) {
+                    let targetX = snake[i-1].x;
+                    let targetY = snake[i-1].y;
+                    let dist = getDistance(snake[i].x, snake[i].y, targetX, targetY);
+                    
+                    let idealDist = snakeRadius * 1.2; 
+                    if (dist > idealDist) {
+                        let angle = Math.atan2(targetY - snake[i].y, targetX - snake[i].x);
+                        snake[i].x = targetX - Math.cos(angle) * idealDist;
+                        snake[i].y = targetY - Math.sin(angle) * idealDist;
+                    }
+                }
+
+                // Duvar çarpışması
+                if (head.x < 0 || head.x > canvas.width || head.y < 0 || head.y > canvas.height) {
+                    gameOver();
+                    return;
+                }
+
+                // Kendine çarpma kontrolü
+                for (let i = 20; i < snake.length; i++) {
+                    if (getDistance(head.x, head.y, snake[i].x, snake[i].y) < snakeRadius * 0.8) {
+                        gameOver();
+                        return;
+                    }
+                }
+
+                // Yem yeme kontrolü
+                if (getDistance(head.x, head.y, food.x, food.y) < snakeRadius + 10) {
+                    score++;
+                    document.getElementById("score").innerText = score;
+                    spawnFood();
+                    
+                    // Kuyruğu kilitlenmeye sebep olmayacak şekilde güvenle uzatıyoruz
+                    let lastPart = snake[snake.length - 1];
+                    snake.push({ x: lastPart.x, y: lastPart.y });
+                    snake.push({ x: lastPart.x, y: lastPart.y });
+                    snake.push({ x: lastPart.x, y: lastPart.y });
+                }
+            }
+
+            // Yılanı Çiz
+            for (let i = snake.length - 1; i >= 0; i--) {
+                ctx.beginPath();
+                if (i == 0) {
+                    // Kafa
+                    ctx.fillStyle = "#2ecc71";
+                    ctx.arc(snake[i].x, snake[i].y, snakeRadius + 2, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    // Gözler
+                    ctx.fillStyle = "white";
+                    let eyeX1 = snake[i].x, eyeY1 = snake[i].y;
+                    let eyeX2 = snake[i].x, eyeY2 = snake[i].y;
+                    
+                    if(currentDir == "LEFT" || currentDir === null) {
+                        eyeX1 -= 4; eyeY1 -= 4; eyeX2 -= 4; eyeY2 += 4;
+                    } else if(currentDir == "RIGHT") {
+                        eyeX1 += 4; eyeY1 -= 4; eyeX2 += 4; eyeY2 += 4;
+                    } else if(currentDir == "UP") {
+                        eyeX1 -= 4; eyeY1 -= 4; eyeX2 += 4; eyeY2 -= 4;
+                    } else if(currentDir == "DOWN") {
+                        eyeX1 -= 4; eyeY1 += 4; eyeX2 += 4; eyeY2 += 4;
+                    }
+                    
+                    ctx.beginPath(); ctx.arc(eyeX1, eyeY1, 3, 0, Math.PI*2); ctx.fill();
+                    ctx.beginPath(); ctx.arc(eyeX2, eyeY2, 3, 0, Math.PI*2); ctx.fill();
+                    ctx.fillStyle = "black";
+                    ctx.beginPath(); ctx.arc(eyeX1, eyeY1, 1.5, 0, Math.PI*2); ctx.fill();
+                    ctx.beginPath(); ctx.arc(eyeX2, eyeY2, 1.5, 0, Math.PI*2); ctx.fill();
+
+                } else {
+                    // Gövde
+                    ctx.fillStyle = i % 2 == 0 ? "#27ae60" : "#219a52";
+                    ctx.arc(snake[i].x, snake[i].y, snakeRadius, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            }
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        function gameOver() {
+            isGameOver = true;
+            alert("Oyun Bitti! Skorun: " + score);
+            location.reload();
+        }
+
+        // İlk kareyi başlat
+        requestAnimationFrame(gameLoop);
+    </script>
+</body>
+</html>
