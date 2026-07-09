@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Konuşan Aslan Leo</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(to bottom, #FFA726, #FFCC80);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            overflow: hidden;
+        }
+
+        #game-container {
+            text-align: center;
+            position: relative;
+        }
+
+        /* Aslan Yelesi (Arka Katman) */
+        #mane {
+            width: 260px;
+            height: 260px;
+            background-color: #8D4F2A; /* Kahverengi yele */
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.3);
+            transition: transform 0.1s;
+        }
+
+        /* Aslanın Yüzü */
+        #lion-face {
+            width: 180px;
+            height: 180px;
+            background-color: #FFB300; /* Altın sarısı yüz */
+            border-radius: 50%;
+            position: relative;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        /* Kulaklar */
+        .ear {
+            position: absolute;
+            top: -10px;
+            width: 45px;
+            height: 45px;
+            background-color: #8D4F2A;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .ear-inner {
+            width: 25px;
+            height: 25px;
+            background-color: #FFB300;
+            border-radius: 50%;
+        }
+        .left-ear { left: 15px; }
+        .right-ear { right: 15px; }
+
+        /* Gözler */
+        .eye {
+            position: absolute;
+            top: 55px;
+            width: 30px;
+            height: 40px;
+            background-color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: height 0.1s;
+        }
+        .left-eye { left: 40px; }
+        .right-eye { right: 40px; }
+        .pupil {
+            width: 14px;
+            height: 14px;
+            background-color: #2E7D32; /* Yeşil aslan gözü */
+            border-radius: 50%;
+        }
+
+        /* Burun */
+        #nose {
+            position: absolute;
+            top: 90px;
+            left: 75px;
+            width: 30px;
+            height: 20px;
+            background-color: #4E342E;
+            border-radius: 5px 5px 15px 15px;
+        }
+
+        /* Ağız */
+        #mouth {
+            position: absolute;
+            bottom: 35px;
+            left: 70px;
+            width: 40px;
+            height: 15px;
+            background-color: #3E2723;
+            border-radius: 0 0 20px 20px;
+            transition: all 0.2s;
+        }
+
+        /* UI Elemanları */
+        h1 {
+            color: #3E2723;
+            margin-bottom: 5px;
+            text-shadow: 1px 1px 2px rgba(255,255,255,0.5);
+        }
+        
+        p {
+            color: #5D4037;
+            font-weight: bold;
+        }
+
+        .btn {
+            background-color: #D84315;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            font-size: 16px;
+            border-radius: 25px;
+            cursor: pointer;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+            transition: background 0.2s, transform 0.1s;
+        }
+
+        .btn:hover { background-color: #BF360C; }
+        .btn:active { transform: scale(0.95); }
+
+        /* Animasyonlar */
+        .roaring #mouth {
+            height: 45px;
+            width: 45px;
+            left: 67px;
+            border-radius: 50%;
+            background-color: #000;
+            animation: shakeMouth 0.1s infinite alternate;
+        }
+
+        .hurt {
+            transform: scale(0.9) rotate(-5deg);
+        }
+        .hurt .eye {
+            height: 4px !important;
+        }
+
+        @keyframes shakeMouth {
+            from { transform: scale(0.9); }
+            to { transform: scale(1.1); }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="game-container">
+        <h1>Konuşan Aslan Leo</h1>
+        <p>Aslanı kükretmek için üzerine tıkla veya butona basıp onunla konuş!</p>
+        
+        <div id="mane">
+            <div id="lion-face" onclick="roarLion()">
+                <div class="ear left-ear"><div class="ear-inner"></div></div>
+                <div class="ear right-ear"><div class="ear-inner"></div></div>
+                <div class="eye left-eye"><div class="pupil"></div></div>
+                <div class="eye right-eye"><div class="pupil"></div></div>
+                <div id="nose"></div>
+                <div id="mouth"></div>
+            </div>
+        </div>
+
+        <button class="btn" onclick="startListening()">Kralı Dinle & Tekrar Et</button>
+    </div>
+
+    <script>
+        const mane = document.getElementById('mane');
+        const face = document.getElementById('lion-face');
+        const mouth = document.getElementById('mouth');
+
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        const synth = window.speechSynthesis;
+
+        // 1. Aslanı Kükretme Fonksiyonu
+        function roarLion() {
+            mane.classList.add('hurt');
+            face.classList.add('roaring');
+            
+            const utterance = new SpeechSynthesisUtterance("Ruaaaarrr! Ben ormanlar kralıyım!");
+            utterance.pitch = 0.6; // Aslan olduğu için bu sefer sesi biraz kalınlaştırdık
+            utterance.rate = 1;
+            
+            utterance.onend = () => {
+                mane.classList.remove('hurt');
+                face.classList.remove('roaring');
+            };
+
+            synth.speak(utterance);
+        }
+
+        // 2. Dinleme ve Komik Sesle Tekrar Etme
+        function startListening() {
+            if (!SpeechRecognition) {
+                alert("Tarayıcınız ses tanımayı desteklemiyor. Lütfen Chrome deneyin.");
+                return;
+            }
+
+            const recognition = new SpeechRecognition();
+            recognition.lang = 'tr-TR';
+
+            face.style.backgroundColor = '#FF8F00'; // Dinleme modunda renk değişimi
+
+            recognition.onresult = (event) => {
+                const textInput = event.results[0][0].transcript;
+                face.style.backgroundColor = '#FFB300';
+                lionRepeat(textInput);
+            };
+
+            recognition.onerror = () => {
+                face.style.backgroundColor = '#FFB300';
+                alert("Sesini duyamadım, tekrar kükrer misin?");
+            };
+
+            recognition.start();
+        }
+
+        function lionRepeat(text) {
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.pitch = 1.4; // Konuşurken yine tatlı/komik bir tonda tekrar etsin
+            utterance.rate = 1.1;
+
+            utterance.onstart = () => {
+                face.classList.add('roaring');
+            };
+
+            utterance.onend = () => {
+                face.classList.remove('roaring');
+            };
+
+            synth.speak(utterance);
+        }
+    </script>
+</body>
+</html>
